@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-public class main {
+public class A1 {
 
 	public static void main(String[] args) {
 
@@ -13,7 +13,7 @@ public class main {
 
 		List<Long> aL = new ArrayList<>();
 		List<Long> lL = new LinkedList<>();
-		test(aL, 2); // 1 - Einfügen, 2 - Suchen
+		test(aL, 1); // 1 - Einfügen, 2 - Suchen
 	}
 
 	public static void insertTest() {
@@ -45,7 +45,7 @@ public class main {
 			case 1:
 				System.out.println("Einfügen von Elementen mit " + ((s) * 3E5)
 						+ " Elementen : (in ms)");
-				results = instertElements(L, (s) * (long) 3E5);
+				results = insertElements(L, (s) * (long) 3E5);
 				break;
 			case 2:
 				System.out.println("Suchen von Elementen mit " + ((s) * 3E5)
@@ -72,7 +72,7 @@ public class main {
 		for (long s = 0; s < count; s++) {
 			L.add(new Long(s));
 		}
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < 30; i++) {
 			Long start = new Long(System.currentTimeMillis());
 			for (Iterator<Long> iterator = L.listIterator(); iterator.hasNext();) {
 				Long long1 = (Long) iterator.next();
@@ -88,12 +88,12 @@ public class main {
 		return calcResults(measurements);
 	}
 
-	private static long[] instertElements(List<Long> L, long count) {
+	private static long[] insertElements(List<Long> L, long count) {
 
 		List<Long> measurements = new ArrayList<>();
 		Long e = new Long(1);
 		System.gc();
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < 30; i++) {
 			Long start = new Long(System.currentTimeMillis());
 			for (long s = 0; s < count; s++) {
 				L.add(e);
@@ -110,6 +110,9 @@ public class main {
 
 		long[] results = { 0, 0, 0, 0 };
 
+		for (int i = 0; i < 10; i++) {
+			measurements.remove(0);
+		}
 		results[0] = java.util.Collections.max(measurements);
 		results[1] = java.util.Collections.min(measurements);
 		for (Iterator<Long> iterator = measurements.iterator(); iterator
