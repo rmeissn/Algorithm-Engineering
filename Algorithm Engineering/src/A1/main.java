@@ -1,0 +1,130 @@
+package A1;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
+public class main {
+
+	public static void main(String[] args) {
+
+		// insertTest(); // In der Methode die Listen ändern
+
+		List<Long> aL = new ArrayList<>();
+		List<Long> lL = new LinkedList<>();
+		test(aL, 2); // 1 - Einfügen, 2 - Suchen
+	}
+
+	public static void insertTest() {
+
+		long counter = 0;
+		long memory = 0;
+		System.gc();
+		try {
+			// List<Long> L = new ArrayList<>();
+			List<Long> L = new LinkedList<>();
+			while (true) {
+				counter++;
+				memory = Runtime.getRuntime().freeMemory();
+				L.add(new Long(1));
+			}
+		} catch (OutOfMemoryError e) {
+			System.gc();
+			System.out.println("Elementanzahl: " + counter);
+			System.out.println("Maximaler Speicher: "
+					+ Runtime.getRuntime().maxMemory());
+			System.out.println("Freier Speicher: " + memory);
+		}
+	}
+
+	private static void test(List<Long> L, int i) {
+		long[] results = null;
+		for (int s = 1; s <= 32; s *= 2) {
+			switch (i) {
+			case 1:
+				System.out.println("Einfügen von Elementen mit " + ((s) * 3E5)
+						+ " Elementen : (in ms)");
+				results = instertElements(L, (s) * (long) 3E5);
+				break;
+			case 2:
+				System.out.println("Suchen von Elementen mit " + ((s) * 3E5)
+						+ " Elementen: (in ms)");
+				results = searchElements(L, (s) * (long) 3E5);
+				break;
+			default:
+				break;
+			}
+			System.out.println("Maximal: " + results[0]);
+			System.out.println("Minimal: " + results[1]);
+			System.out.println("Durchschnitt: " + results[2]);
+			System.out.println("Standardabweichung: " + results[3]);
+			System.out.println();
+		}
+	}
+
+	private static long[] searchElements(List<Long> L, long count) {
+
+		List<Long> measurements = new ArrayList<>();
+		Long hold = new Long(count / 2);
+
+		System.gc();
+		for (long s = 0; s < count; s++) {
+			L.add(new Long(s));
+		}
+		for (int i = 0; i < 20; i++) {
+			Long start = new Long(System.currentTimeMillis());
+			for (Iterator<Long> iterator = L.listIterator(); iterator.hasNext();) {
+				Long long1 = (Long) iterator.next();
+				if (long1.equals(hold))
+					break;
+			}
+			Long stop = new Long(System.currentTimeMillis());
+			measurements.add(stop - start);
+			System.gc();
+		}
+		L.clear();
+
+		return calcResults(measurements);
+	}
+
+	private static long[] instertElements(List<Long> L, long count) {
+
+		List<Long> measurements = new ArrayList<>();
+		Long e = new Long(1);
+		System.gc();
+		for (int i = 0; i < 20; i++) {
+			Long start = new Long(System.currentTimeMillis());
+			for (long s = 0; s < count; s++) {
+				L.add(e);
+			}
+			Long stop = new Long(System.currentTimeMillis());
+			L.clear();
+			System.gc();
+			measurements.add(stop - start);
+		}
+		return calcResults(measurements);
+	}
+
+	private static long[] calcResults(List<Long> measurements) {
+
+		long[] results = { 0, 0, 0, 0 };
+
+		results[0] = java.util.Collections.max(measurements);
+		results[1] = java.util.Collections.min(measurements);
+		for (Iterator<Long> iterator = measurements.iterator(); iterator
+				.hasNext();) {
+			Long long1 = (Long) iterator.next();
+			results[2] += long1.longValue();
+		}
+		results[2] = results[2] / 20;
+		for (Iterator<Long> iterator = measurements.iterator(); iterator
+				.hasNext();) {
+			Long long1 = (Long) iterator.next();
+			results[3] += Math.pow((long1.longValue() - results[2]), 2);
+		}
+		results[3] = (long) Math.sqrt(results[3] / 20.0);
+		return results;
+	}
+
+}
