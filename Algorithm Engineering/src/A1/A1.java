@@ -91,17 +91,16 @@ public class A1 {
 	private static long[] insertElements(List<Long> L, long count) {
 
 		List<Long> measurements = new ArrayList<>();
-		Long e = new Long(1);
 		System.gc();
 		for (int i = 0; i < 30; i++) {
 			Long start = new Long(System.currentTimeMillis());
 			for (long s = 0; s < count; s++) {
-				L.add(e);
+				L.add(new Long(s));
 			}
 			Long stop = new Long(System.currentTimeMillis());
 			L.clear();
-			System.gc();
 			measurements.add(stop - start);
+			System.gc();
 		}
 		return calcResults(measurements);
 	}
