@@ -13,7 +13,7 @@ public class A1 {
 
 		List<Long> aL = new ArrayList<>();
 		List<Long> lL = new LinkedList<>();
-		test(aL, 1); // 1 - Einfügen, 2 - Suchen
+		test(aL, 4); // 1 - Einfügen, 2 - Suchen
 	}
 
 	public static void insertTest() {
@@ -52,6 +52,14 @@ public class A1 {
 						+ " Elementen: (in ms)");
 				results = searchElements(L, (s) * (long) 3E5);
 				break;
+			case 3:
+				System.out.println("Szenario der ArrayList");
+				results = szenarioArrayList(L);
+				break;
+			case 4:
+				System.out.println("Szenario der LinkedList");
+				results = szenarioLinkedList(L);
+				break;
 			default:
 				break;
 			}
@@ -60,6 +68,8 @@ public class A1 {
 			System.out.println("Durchschnitt: " + results[2]);
 			System.out.println("Standardabweichung: " + results[3]);
 			System.out.println();
+			if (i == 3 || i == 4)
+				break;
 		}
 	}
 
@@ -129,4 +139,52 @@ public class A1 {
 		return results;
 	}
 
+	private static long[] szenarioArrayList(List<Long> L) {
+
+		long length = (long) 2E4;
+		List<Long> measurements = new ArrayList<>();
+
+		System.gc();
+		for (int s = 0; s < 30; s++) {
+			Long start = new Long(System.currentTimeMillis());
+			for (long i = 0; i < length; i++) {
+				L.add(new Long(i));
+			}
+			for (Iterator<Long> iterator = L.listIterator(); iterator.hasNext();) {
+				Long long1 = (Long) iterator.next();
+				if (long1.equals(new Long(length / 2)))
+					break;
+			}
+			for (long i = length - 1; i >= 0; i--) {
+				L.remove(i);
+			}
+			Long stop = new Long(System.currentTimeMillis());
+			L.clear();
+			measurements.add(stop - start);
+			System.gc();
+		}
+		return calcResults(measurements);
+	}
+
+	private static long[] szenarioLinkedList(List<Long> L) {
+
+		long length = (long) 5E4;
+		List<Long> measurements = new ArrayList<>();
+
+		System.gc();
+		for (int s = 0; s < 30; s++) {
+			Long start = new Long(System.currentTimeMillis());
+			for (long i = 0; i < length; i++) {
+				L.add(0, new Long(i));
+			}
+			for (long i = 0; i < length; i++) {
+				L.remove(0);
+			}
+			Long stop = new Long(System.currentTimeMillis());
+			L.clear();
+			measurements.add(stop - start);
+			System.gc();
+		}
+		return calcResults(measurements);
+	}
 }
