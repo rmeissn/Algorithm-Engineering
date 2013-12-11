@@ -1,2 +1,4 @@
-/Algorithm Engineering
-/bin
+.classpath
+.project
+.cache
+bin
