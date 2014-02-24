@@ -1,7 +1,6 @@
 package project
 
 import scala.collection.immutable.Vector
-import scala.collection.mutable.ArraySeq
 import scala.collection.parallel.immutable.ParSeq
 import scala.collection.parallel.traversable2ops
 import scala.math.Pi
@@ -14,15 +13,16 @@ import java.nio.file.Paths
 import java.nio.charset.Charset
 import java.nio.file.StandardOpenOption
 import java.io.IOException
-import scala.sys.process.ProcessBuilder
-import scala.sys.process.Process
+import scala.sys.process._
+import scala.collection.immutable.HashMap
+import scala.collection.immutable.HashSet
 
 object TSM {
 
   def main(args: Array[String]): Unit = {
 
     lazy val cityCoordinates: Vector[(String, (Double, Double))] = Vector(
-      ("Frankfurt am Main", (50.11222, 08.68194)),
+      ("Frankfurt am Main", (50.11222, 8.68194)),
       ("Berlin", (52.52222, 13.29750)),
       ("Leipzig", (51.340333, 12.37475)),
       ("München", (48.137222, 11.575556)),
@@ -31,20 +31,20 @@ object TSM {
       ("Dresden", (51.049259, 13.73836)),
       ("Halle", (51.482778, 11.97)),
       //      ("Potsdam", (52.395833, 13.061389)),
-      //      ("Erfurt", (50.978056, 11.029167)),
-      //      ("London", (51.50939, -0.11832)),
+      //            ("Erfurt", (50.978056, 11.029167)),
+      ("London", (51.50939, -0.11832)),
       ("Stuttgart", (48.775556, 9.182778)))
 
     lazy val citys: Range = (0 until cityCoordinates.size)
     lazy val distances: IndexedSeq[IndexedSeq[Double]] = calcDistances(cityCoordinates)
 
     lazy val algorithm: Vector[((Range, IndexedSeq[IndexedSeq[Double]]) => (IndexedSeq[Int], Double), String)] =
-      Vector( (BFS, "BFS")/*, (BFSParallel, "BFSP") , (BAB, "BAB"), (BABG, "BABG") */, (DynRek,"DynRek") )
+      Vector(/*(BFS, "BFS"), (BFSParallel, "BFSP"), (BAB, "BAB"), (BABG, "BABG"),*/ (DynRek, "DynRek"), (DynRekPar, "DynRekPar"), (Dyn, "Dyn"), (DynPar, "DynPar"))
 
     lazy val text = "#Laufzeiten für die Anzahl von enthaltenden Städten\n" +
       "#Städte Minimum Maximum Durschnitt Abweichung\n"
     var fileAlgoNames: Vector[(String, String)] = Vector()
-    lazy val dir = "/home/roy/AlgoTest/"
+    lazy val dir = "bin/"
 
     algorithm.foreach { x =>
       lazy val target = Paths get (dir + x._2 + "_" + System.currentTimeMillis() + ".dat");
@@ -68,23 +68,27 @@ object TSM {
 
   def produceGraphics(citySize: Int, filenames: Vector[(String, String)], dir: String): Unit = {
 
-    val source = Paths get (dir + "template.plt")
+    val source = Paths get ("src/project/" + "template.plt")
     val content = Files.readAllBytes(source)
     val destination = Paths get (dir + "plot.plt")
     Files.deleteIfExists(destination)
     Files.createFile(destination)
 
+    //    val cmd = "set output \"" + dir + "res-" + System.currentTimeMillis() + ".png\"\n" +
+    //      "set xrange [ 4.00000 : " + citySize + " ] noreverse nowriteback\n" +
+    //      "fit f(x) '" + dir + filenames(0)._1 + "' using 1:4:5 via a,b\n" +
+    //      "fit g(x) '" + dir + filenames(1)._1 + "' using 1:4:5 via c,d\n" +
+    //      "plot '" + dir + filenames(0)._1 + "' using 1:4:5 w e notitle , f(x) w l title '" + filenames(0)._2 + "','" + dir + filenames(1)._1 + "' using 1:4:5 w e notitle , g(x) w l title '" + filenames(1)._2 + "'"
     val cmd = "set output \"" + dir + "res-" + System.currentTimeMillis() + ".png\"\n" +
       "set xrange [ 4.00000 : " + citySize + " ] noreverse nowriteback\n" +
-      "fit f(x) '" + dir + filenames(0)._1 + "' using 1:4:5 via a,b\n" +
-      "fit g(x) '" + dir + filenames(1)._1 + "' using 1:4:5 via c,d\n" +
-      "plot '" + dir + filenames(0)._1 + "' using 1:4:5 w e notitle , f(x) w l title '" + filenames(0)._2 + "','" + dir + filenames(1)._1 + "' using 1:4:5 w e notitle , g(x) w l title '" + filenames(1)._2 + "'"
-    //    val cmd = pre + filenames.foldLeft("") { (y,x) =>
-    //      y + "\'" + dir + x._1 + "\' using 1:4 w lp title \'" + x._2 + "\', '' using 1:4:5 w e notitle,"
-    //      "'/home/roy/AlgoTest/BAB_1389872973200.dat' using 1:4:5 w e notitle , f(x) w l title 'BAB'"
-    //    }
+      "plot " +
+      filenames.foldLeft("") { (y, x) =>
+        y + "\'" + dir + x._1 + "\' using 1:4 w lp title \'" + x._2 + "\', '' using 1:4:5 w e notitle,"
+      }
     Files.write(destination, content ++ cmd.getBytes(), StandardOpenOption.APPEND);
-    Process("gnuplot " + dir + "plot.plt").run()
+    "gnuplot " + dir + "plot.plt" !;
+    Files.deleteIfExists(destination)
+    Files deleteIfExists (Paths get ("fit.log"))
   }
 
   def measure[A](count: Int, citys: Range, cityCoordinates: Vector[(String, (Double, Double))], distances: IndexedSeq[IndexedSeq[Double]], f: (Range, IndexedSeq[IndexedSeq[Double]]) => (IndexedSeq[Int], Double)): ParSeq[Long] = {
@@ -144,7 +148,7 @@ object TSM {
 
   def BFS(citys: Range, distances: IndexedSeq[IndexedSeq[Double]]): (IndexedSeq[Int], Double) = {
 
-    citys.tail.permutations
+    citys.tail.permutations.toArray
       .map(citys.head +: _)
       .map(x => (x, x
         .foldLeft((x.last, 0.0))((res, value) => (value, distances(res._1)(value) + res._2))._2))
@@ -153,8 +157,8 @@ object TSM {
 
   def BFSParallel(citys: Range, distances: IndexedSeq[IndexedSeq[Double]]): (IndexedSeq[Int], Double) = {
 
-    citys.tail.permutations
-      .map(citys.head +: _).toParArray
+    citys.tail.permutations.toParArray
+      .map(citys.head +: _)
       .map(x => (x, x
         .foldLeft((x.last, 0.0))((res, value) => (value, distances(res._1)(value) + res._2))._2))
       .minBy(_._2)
@@ -221,7 +225,7 @@ object TSM {
         (Vector(), distances(city)(0))
       } else {
         rest.map { ncity =>
-          val res = g(ncity, rest.filterNot(_ == ncity))
+          lazy val res = g(ncity, rest.filterNot(_ == ncity))
           (ncity +: res._1, distances(city)(ncity) + res._2)
         }.minBy(_._2)
       }
@@ -231,18 +235,15 @@ object TSM {
     lazy val res = g(citys.head, citys.filterNot(_ == citys.head))
     (citys.head +: res._1, res._2)
   }
-  
-  def Dyn(citys: Range, distances: IndexedSeq[IndexedSeq[Double]]): (IndexedSeq[Int], Double) = {
 
-    var distances: ArraySeq[ArraySeq[Int]] = ArraySeq()
-    //fill array with values
-    //find lowest value
+  def DynRekPar(citys: Range, distances: IndexedSeq[IndexedSeq[Double]]): (IndexedSeq[Int], Double) = {
+
     def g(city: Int, rest: IndexedSeq[Int]): (IndexedSeq[Int], Double) = {
       if (rest.isEmpty) {
         (Vector(), distances(city)(0))
       } else {
-        rest.map { ncity =>
-          val res = g(ncity, rest.filterNot(_ == ncity))
+        rest.par.map { ncity =>
+          lazy val res = g(ncity, rest.filterNot(_ == ncity))
           (ncity +: res._1, distances(city)(ncity) + res._2)
         }.minBy(_._2)
       }
@@ -251,6 +252,64 @@ object TSM {
     //start with first city
     lazy val res = g(citys.head, citys.filterNot(_ == citys.head))
     (citys.head +: res._1, res._2)
+  }
+
+  def Dyn(citys: Range, distances: IndexedSeq[IndexedSeq[Double]]): (IndexedSeq[Int], Double) = {
+
+    var help: HashMap[(Int, Set[Int]), (IndexedSeq[Int], Double)] = HashMap()
+
+    def g(i: Int, S: Set[Int], citys: Set[Int]): (IndexedSeq[Int], Double) = {
+      if (S.isEmpty)
+        return (IndexedSeq(i), distances(i)(0))
+      else {
+        return S.map { x =>
+          val lhelp = help(x, S - x)
+          (i +: lhelp._1, distances(i)(x) + lhelp._2)
+        }.minBy(_._2)
+      }
+    }
+
+    val cCitys = citys.tail.toSet
+    cCitys.foreach(x => help = help + (((x, Set()), g(x, Set(), cCitys))))
+    (1 to citys.size - 1).foreach { k =>
+      cCitys.subsets(k).foreach { x =>
+        cCitys.foreach { y =>
+          if (!x.contains(y))
+            help = help + (((y, x), g(y, x, cCitys)))
+        }
+      }
+    }
+
+    return g(0, cCitys, cCitys)
+  }
+
+  def DynPar(citys: Range, distances: IndexedSeq[IndexedSeq[Double]]): (IndexedSeq[Int], Double) = {
+
+    var help: HashMap[(Int, Set[Int]), (IndexedSeq[Int], Double)] = HashMap()
+
+    def g(i: Int, S: Set[Int], citys: Set[Int]): (IndexedSeq[Int], Double) = {
+      if (S.isEmpty)
+        return (IndexedSeq(i), distances(i)(0))
+      else {
+        return S.par.map { x =>
+          val lhelp = help(x, S - x)
+          (i +: lhelp._1, distances(i)(x) + lhelp._2)
+        }.minBy(_._2)
+      }
+    }
+
+    val cCitys = citys.tail.toSet
+    cCitys.foreach(x => help = help + (((x, Set()), g(x, Set(), cCitys))))
+    (1 to citys.size - 1).foreach { k =>
+      cCitys.subsets(k).foreach { x =>
+        cCitys.foreach { y =>
+          if (!x.contains(y))
+            help = help + (((y, x), g(y, x, cCitys)))
+        }
+      }
+    }
+
+    return g(0, cCitys, cCitys)
   }
 
 }
