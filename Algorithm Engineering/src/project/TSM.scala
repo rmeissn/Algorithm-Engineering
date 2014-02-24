@@ -39,7 +39,7 @@ object TSM {
     lazy val distances: IndexedSeq[IndexedSeq[Double]] = calcDistances(cityCoordinates)
 
     lazy val algorithm: Vector[((Range, IndexedSeq[IndexedSeq[Double]]) => (IndexedSeq[Int], Double), String)] =
-      Vector(/*(BFS, "BFS"), (BFSParallel, "BFSP"), (BAB, "BAB"), (BABG, "BABG"),*/ (DynRek, "DynRek"), (DynRekPar, "DynRekPar"), (Dyn, "Dyn"), (DynPar, "DynPar"))
+      Vector( /*(BFS, "BFS"), (BFSParallel, "BFSP"), (BAB, "BAB"), (BABG, "BABG"),*/ (DynRek, "DynRek"), (DynRekPar, "DynRekPar"), (Dyn, "Dyn"), (DynPar, "DynPar"))
 
     lazy val text = "#Laufzeiten für die Anzahl von enthaltenden Städten\n" +
       "#Städte Minimum Maximum Durschnitt Abweichung\n"
@@ -79,11 +79,13 @@ object TSM {
     //      "fit f(x) '" + dir + filenames(0)._1 + "' using 1:4:5 via a,b\n" +
     //      "fit g(x) '" + dir + filenames(1)._1 + "' using 1:4:5 via c,d\n" +
     //      "plot '" + dir + filenames(0)._1 + "' using 1:4:5 w e notitle , f(x) w l title '" + filenames(0)._2 + "','" + dir + filenames(1)._1 + "' using 1:4:5 w e notitle , g(x) w l title '" + filenames(1)._2 + "'"
+    var i = 0;
     val cmd = "set output \"" + dir + "res-" + System.currentTimeMillis() + ".png\"\n" +
       "set xrange [ 4.00000 : " + citySize + " ] noreverse nowriteback\n" +
       "plot " +
       filenames.foldLeft("") { (y, x) =>
-        y + "\'" + dir + x._1 + "\' using 1:4 w lp title \'" + x._2 + "\', '' using 1:4:5 w e notitle,"
+        i += 1;
+        y + "\'" + dir + x._1 + "\' using 1:4 lt " + i + " title \'" + x._2 + "\', '' using 1:4:5 w e lt " + i + " notitle ,"
       }
     Files.write(destination, content ++ cmd.getBytes(), StandardOpenOption.APPEND);
     "gnuplot " + dir + "plot.plt" !;
