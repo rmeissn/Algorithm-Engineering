@@ -21,7 +21,7 @@ object TSM {
 
   def main(args: Array[String]): Unit = {
 
-    lazy val cityCoordinates: Vector[(String, (Double, Double))] = Vector(
+    val cityCoordinates: Vector[(String, (Double, Double))] = Vector(
       ("Frankfurt am Main", (50.11222, 8.68194)),
       ("Berlin", (52.52222, 13.29750)),
       ("Leipzig", (51.340333, 12.37475)),
@@ -35,30 +35,30 @@ object TSM {
       ("London", (51.50939, -0.11832)),
       ("Stuttgart", (48.775556, 9.182778)))
 
-    lazy val citys: Range = (0 until cityCoordinates.size)
-    lazy val distances: IndexedSeq[IndexedSeq[Double]] = calcDistances(cityCoordinates)
+    val citys: Range = (0 until cityCoordinates.size)
+    val distances: IndexedSeq[IndexedSeq[Double]] = calcDistances(cityCoordinates)
 
-    lazy val algorithm: Vector[((Range, IndexedSeq[IndexedSeq[Double]]) => (IndexedSeq[Int], Double), String)] =
+    val algorithm: Vector[((Range, IndexedSeq[IndexedSeq[Double]]) => (IndexedSeq[Int], Double), String)] =
       Vector( /*(BFS, "BFS"), (BFSParallel, "BFSP"), (BAB, "BAB"), (BABG, "BABG"),*/ (DynRek, "DynRek"), (DynRekPar, "DynRekPar"), (Dyn, "Dyn"), (DynPar, "DynPar"))
 
-    lazy val text = "#Laufzeiten für die Anzahl von enthaltenden Städten\n" +
+    val text = "#Laufzeiten für die Anzahl von enthaltenden Städten\n" +
       "#Städte Minimum Maximum Durschnitt Abweichung\n"
     var fileAlgoNames: Vector[(String, String)] = Vector()
-    lazy val dir = "bin/"
+    val dir = "bin/"
 
     algorithm.foreach { x =>
-      lazy val target = Paths get (dir + x._2 + "_" + System.currentTimeMillis() + ".dat");
-      lazy val file = Files createFile (target);
+      val target = Paths get (dir + x._2 + "_" + System.currentTimeMillis() + ".dat");
+      val file = Files createFile (target);
       Files.write(file, text.getBytes, StandardOpenOption.WRITE);
       fileAlgoNames = fileAlgoNames :+ (file.getFileName().toString(), x._2)
       (5 until citys.size).foreach { y =>
         println(y + 1 + " Städte")
-        lazy val res = calcResuslts(measure(30, citys.take(y), cityCoordinates, distances, x._1))
+        val res = calcResuslts(measure(30, citys.take(y), cityCoordinates, distances, x._1))
         println("Maximal: " ++ res._1)
         println("Minimal: " ++ res._2)
         println("Durchschnitt: " ++ res._3)
         println("Abweichung: " ++ res._4 + "\n\n")
-        lazy val line = "" + y + " " + res._1 + " " + res._2 + " " + res._3 + " " + res._4 + "\n"
+        val line = "" + y + " " + res._1 + " " + res._2 + " " + res._3 + " " + res._4 + "\n"
         Files.write(file, line.getBytes(), StandardOpenOption.APPEND);
       }
       file.normalize()
@@ -74,11 +74,6 @@ object TSM {
     Files.deleteIfExists(destination)
     Files.createFile(destination)
 
-    //    val cmd = "set output \"" + dir + "res-" + System.currentTimeMillis() + ".png\"\n" +
-    //      "set xrange [ 4.00000 : " + citySize + " ] noreverse nowriteback\n" +
-    //      "fit f(x) '" + dir + filenames(0)._1 + "' using 1:4:5 via a,b\n" +
-    //      "fit g(x) '" + dir + filenames(1)._1 + "' using 1:4:5 via c,d\n" +
-    //      "plot '" + dir + filenames(0)._1 + "' using 1:4:5 w e notitle , f(x) w l title '" + filenames(0)._2 + "','" + dir + filenames(1)._1 + "' using 1:4:5 w e notitle , g(x) w l title '" + filenames(1)._2 + "'"
     var i = 0;
     val cmd = "set output \"" + dir + "res-" + System.currentTimeMillis() + ".png\"\n" +
       "set xrange [ 4.00000 : " + citySize + " ] noreverse nowriteback\n" +
@@ -116,8 +111,8 @@ object TSM {
   }
 
   def calcResuslts(seq: ParSeq[Long]): (String, String, String, String) = {
-    lazy val smallseq = seq.drop(10)
-    lazy val middle = (smallseq.sum / smallseq.length)
+    val smallseq = seq.drop(10)
+    val middle = (smallseq.sum / smallseq.length)
     return ((smallseq.max).toString, (smallseq.min).toString, middle.toString,
       Math.sqrt(((smallseq.map(x => Math.pow(x - middle, 2))).sum / smallseq.length)).toString)
   }
@@ -130,8 +125,8 @@ object TSM {
 
     if (city1 == city2)
       0.0
-    lazy val city1B = (city1._1 / 180 * Pi, city1._2 / 180 * Pi)
-    lazy val city2B = (city2._1 / 180 * Pi, city2._2 / 180 * Pi)
+    val city1B = (city1._1 / 180 * Pi, city1._2 / 180 * Pi)
+    val city2B = (city2._1 / 180 * Pi, city2._2 / 180 * Pi)
     acos(sin(city1B._1) * sin(city2B._1) + cos(city1B._1) * cos(city2B._1) * cos(city1B._2 - city2B._2)) * 6378.137
   }
 
@@ -179,7 +174,7 @@ object TSM {
           .map(x => (path._1 :+ x, distances(path._1.last)(x) + path._2))
           .foreach { alternative =>
             if (alternative._2 < solution._2) {
-              lazy val help: (IndexedSeq[Int], Double) = BranchAndBound(citys.filterNot(alternative._1 contains (_)), alternative, distances)
+              val help: (IndexedSeq[Int], Double) = BranchAndBound(citys.filterNot(alternative._1 contains (_)), alternative, distances)
               if (help._2 < solution._2)
                 solution = help
             }
@@ -204,7 +199,7 @@ object TSM {
           .sortBy(x => x._2)
           .foreach { alternative =>
             if (alternative._2 < solution._2) {
-              lazy val help: (IndexedSeq[Int], Double) = BranchAndBoundGreedy(citys.filterNot(alternative._1 contains (_)), alternative, distances, depth + 1)
+              val help: (IndexedSeq[Int], Double) = BranchAndBoundGreedy(citys.filterNot(alternative._1 contains (_)), alternative, distances, depth + 1)
               if (help._2 < solution._2)
                 solution = help
             }
@@ -227,14 +222,14 @@ object TSM {
         (Vector(), distances(city)(0))
       } else {
         rest.map { ncity =>
-          lazy val res = g(ncity, rest.filterNot(_ == ncity))
+          val res = g(ncity, rest.filterNot(_ == ncity))
           (ncity +: res._1, distances(city)(ncity) + res._2)
         }.minBy(_._2)
       }
     }
 
     //start with first city
-    lazy val res = g(citys.head, citys.filterNot(_ == citys.head))
+    val res = g(citys.head, citys.filterNot(_ == citys.head))
     (citys.head +: res._1, res._2)
   }
 
@@ -245,14 +240,14 @@ object TSM {
         (Vector(), distances(city)(0))
       } else {
         rest.par.map { ncity =>
-          lazy val res = g(ncity, rest.filterNot(_ == ncity))
+          val res = g(ncity, rest.filterNot(_ == ncity))
           (ncity +: res._1, distances(city)(ncity) + res._2)
         }.minBy(_._2)
       }
     }
 
     //start with first city
-    lazy val res = g(citys.head, citys.filterNot(_ == citys.head))
+    val res = g(citys.head, citys.filterNot(_ == citys.head))
     (citys.head +: res._1, res._2)
   }
 
