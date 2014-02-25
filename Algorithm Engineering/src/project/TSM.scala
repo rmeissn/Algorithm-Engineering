@@ -1,21 +1,21 @@
 package project
 
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
+
+import scala.Array.canBuildFrom
+import scala.collection.immutable.HashMap
 import scala.collection.immutable.Vector
 import scala.collection.parallel.immutable.ParSeq
+import scala.collection.parallel.immutable.ParSet
+import scala.collection.parallel.mutable.ParArray
 import scala.collection.parallel.traversable2ops
 import scala.math.Pi
 import scala.math.acos
 import scala.math.cos
 import scala.math.sin
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.nio.charset.Charset
-import java.nio.file.StandardOpenOption
-import java.io.IOException
-import scala.sys.process._
-import scala.collection.immutable.HashMap
-import scala.collection.immutable.HashSet
+import scala.sys.process.stringToProcess
 
 object TSM {
 
@@ -30,16 +30,18 @@ object TSM {
       ("Hamburg", (53.550556, 9.993333)),
       ("Dresden", (51.049259, 13.73836)),
       ("Halle", (51.482778, 11.97)),
-      //      ("Potsdam", (52.395833, 13.061389)),
-      //            ("Erfurt", (50.978056, 11.029167)),
+      ("Potsdam", (52.395833, 13.061389)),
+      ("Erfurt", (50.978056, 11.029167)),
       ("London", (51.50939, -0.11832)),
+      ("Tokio", (35.683889, 139.774444)),
+      ("Kapstadt", (-33.922667, 18.416689)),
       ("Stuttgart", (48.775556, 9.182778)))
 
     val citys: Range = (0 until cityCoordinates.size)
     val distances: IndexedSeq[IndexedSeq[Double]] = calcDistances(cityCoordinates)
 
     val algorithm: Vector[((Range, IndexedSeq[IndexedSeq[Double]]) => (IndexedSeq[Int], Double), String)] =
-      Vector( /*(BFS, "BFS"), (BFSParallel, "BFSP"), (BAB, "BAB"), (BABG, "BABG"),*/ (DynRek, "DynRek"), (DynRekPar, "DynRekPar"), (Dyn, "Dyn"), (DynPar, "DynPar"))
+      Vector( /*(BFS, "BFS"), (BFSParallel, "BFSP"), (BAB, "BAB"), (BABG, "BABG"), (DynRek, "DynRek"), (DynRekPar, "DynRekPar"),*/ (Dyn, "Dyn"), (DynPar, "DynPar"))
 
     val text = "#Laufzeiten für die Anzahl von enthaltenden Städten\n" +
       "#Städte Minimum Maximum Durschnitt Abweichung\n"
@@ -117,11 +119,11 @@ object TSM {
       Math.sqrt(((smallseq.map(x => Math.pow(x - middle, 2))).sum / smallseq.length)).toString)
   }
 
-  /*
+  def calcDistance(city1: (Double, Double), city2: (Double, Double)): Double = {
+    /*
    * Quelle: http://www.koordinaten.de/informationen/formel.shtml
    * Long, Lang in Grad
    */
-  def calcDistance(city1: (Double, Double), city2: (Double, Double)): Double = {
 
     if (city1 == city2)
       0.0
@@ -267,8 +269,7 @@ object TSM {
     }
 
     val cCitys = citys.tail.toSet
-    cCitys.foreach(x => help = help + (((x, Set()), g(x, Set(), cCitys))))
-    (1 to citys.size - 1).foreach { k =>
+    for (k <- 0 until citys.size) {
       cCitys.subsets(k).foreach { x =>
         cCitys.foreach { y =>
           if (!x.contains(y))
@@ -288,7 +289,7 @@ object TSM {
       if (S.isEmpty)
         return (IndexedSeq(i), distances(i)(0))
       else {
-        return S.par.map { x =>
+        return S.map { x =>
           val lhelp = help(x, S - x)
           (i +: lhelp._1, distances(i)(x) + lhelp._2)
         }.minBy(_._2)
@@ -296,14 +297,17 @@ object TSM {
     }
 
     val cCitys = citys.tail.toSet
-    cCitys.foreach(x => help = help + (((x, Set()), g(x, Set(), cCitys))))
-    (1 to citys.size - 1).foreach { k =>
-      cCitys.subsets(k).foreach { x =>
-        cCitys.foreach { y =>
+
+    for (k <- 0 until citys.size) {
+      val durchlauf: ParArray[ParSet[((Int, Set[Int]), (IndexedSeq[Int], Double))]] = cCitys.subsets(k).toParArray.map { x =>
+        cCitys.par.map { y =>
           if (!x.contains(y))
-            help = help + (((y, x), g(y, x, cCitys)))
+            ((y, x), g(y, x, cCitys))
+          else
+            ((-1, Set(1)), (IndexedSeq(1), 0.0))
         }
       }
+      for (a <- durchlauf.seq; b <- a.seq) { help = help + b }
     }
 
     return g(0, cCitys, cCitys)
